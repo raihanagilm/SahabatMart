@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Mutasi Stok - {{ product.name }}{% endblock %}
+{% block nav_title %}Manajemen Stok{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Riwayat Mutasi: {{ product.name }}</h2>
+    <a href="{{ url_for('gudang.products') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
+</div>
+
+<!-- Info Produk & Stok Saat Ini -->
+<div class="card shadow-sm mb-4 border-primary">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <h5>SKU: {{ product.sku }}</h5>
+                <p class="text-muted mb-0">Harga: Rp {{ "{:,.0f}".format(product.price) }}</p>
+            </div>
+            <div class="col-md-4 text-center">
+                <h1 class="display-4 fw-bold text-primary mb-0">{{ product.stock }}</h1>
+                <p class="text-muted">Stok Tersedia</p>
+            </div>
+            <div class="col-md-4">
+                <!-- Form Tambah Mutasi Cepat -->
+                <form method="POST" action="{{ url_for('gudang.add_mutation', product_id=product.id) }}" class="row g-2">
+                    <div class="col-4">
+                        <select name="mutation_type" class="form-select" required>
+                            <option value="IN">Barang Masuk</option>
+                            <option value="OUT">Barang Keluar</option>
+                            <option value="ADJUSTMENT">Koreksi</option>
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <input type="number" name="quantity" class="form-control" placeholder="Jumlah" min="1" required>
+                    </div>
+                    <div class="col-4">
+                        <button type="submit" class="btn btn-success w-100">Proses</button>
+                    </div>
+                    <div class="col-12">
+                        <input type="text" name="notes" class="form-control form-control-sm" placeholder="Catatan (opsional)">
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabel Riwayat Mutasi -->
+<div class="card shadow-sm">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Log Mutasi Stok</h5>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Tanggal & Waktu</th>
+                    <th>Tipe Mutasi</th>
+                    <th>Jumlah</th>
+                    <th>Catatan</th>
+                    <th>Diproses Oleh</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in product.mutations %}
+                <tr>
+                    <td>{{ m.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
+                    <td>
+                        {% if m.mutation_type == 'IN' %}
+                            <span class="badge bg-success">MASUK</span>
+                        {% elif m.mutation_type == 'OUT' %}
+                            <span class="badge bg-danger">KELUAR</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">KOREKSI</span>
+                        {% endif %}
+                    </td>
+                    <td class="fw-bold">{{ m.quantity }}</td>
+                    <td>{{ m.notes or '-' }}</td>
+                    <td>{{ m.creator.full_name if m.creator else 'Sistem' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">Belum ada riwayat mutasi untuk produk ini.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}  

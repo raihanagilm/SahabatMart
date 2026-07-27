@@ -1,4 +1,5 @@
-from flask import Flask
+# app/__init__.py
+from flask import Flask, redirect, url_for
 from app.config import Config
 from app.extensions import db, login_manager
 from app.models import User
@@ -16,8 +17,17 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # Register Blueprint Auth
+    # Route Root (Halaman Depan)
+    @app.route('/')
+    def index():
+        return redirect(url_for('auth.login'))
+
+    # 1. Register Blueprint Auth
     from app.auth import auth_bp
     app.register_blueprint(auth_bp, url_prefix='/auth')
+
+    # 2. [PERBAIKAN] Register Blueprint Gudang
+    from app.gudang import gudang_bp
+    app.register_blueprint(gudang_bp, url_prefix='/gudang')
 
     return app
