@@ -1,5 +1,27 @@
-from flask import Blueprint
+from flask import Flask, redirect, url_for
+from app.config import Config
+from app.extensions import db, login_manager
+from app.models import User
 
-auth_bp = Blueprint('auth', __name__, template_folder='../templates/auth')
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
 
-from app.auth import routes
+    db.init_app(app)
+    login_manager.init_app(app)
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+
+    # [BARU] Route Root (Halaman Depan)
+    @app.route('/')
+    def index():
+        # Arahkan semua pengunjung halaman depan ke halaman login
+        return redirect(url_for('auth.login'))
+
+    # Register Blueprint Auth
+    from app.auth import auth_bp
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+
+    return app
