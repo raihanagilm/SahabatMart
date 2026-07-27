@@ -1,15 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Mutasi Stok - {{ product.name }}{% endblock %}
-{% block nav_title %}Manajemen Stok{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Riwayat Mutasi: {{ product.name }}</h2>
+    <h2 class="fw-bold">Riwayat Mutasi: {{ product.name }}</h2>
     <a href="{{ url_for('gudang.products') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
 </div>
 
-<!-- Info Produk & Stok Saat Ini -->
-<div class="card shadow-sm mb-4 border-primary">
+<div class="card border-0 shadow-sm mb-4 border-primary">
     <div class="card-body">
         <div class="row align-items-center">
             <div class="col-md-4">
@@ -21,7 +19,6 @@
                 <p class="text-muted">Stok Tersedia</p>
             </div>
             <div class="col-md-4">
-                <!-- Form Tambah Mutasi Cepat -->
                 <form method="POST" action="{{ url_for('gudang.add_mutation', product_id=product.id) }}" class="row g-2">
                     <div class="col-4">
                         <select name="mutation_type" class="form-select" required>
@@ -45,13 +42,12 @@
     </div>
 </div>
 
-<!-- Tabel Riwayat Mutasi -->
-<div class="card shadow-sm">
+<div class="card border-0 shadow-sm">
     <div class="card-header bg-white">
-        <h5 class="mb-0">Log Mutasi Stok</h5>
+        <h5 class="mb-0 fw-bold">Log Mutasi Stok</h5>
     </div>
     <div class="card-body p-0">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0 align-middle">
             <thead class="table-light">
                 <tr>
                     <th>Tanggal & Waktu</th>
@@ -87,4 +83,4 @@
         </table>
     </div>
 </div>
-{% endblock %}  
+{% endblock %}

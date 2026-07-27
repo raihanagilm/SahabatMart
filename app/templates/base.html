@@ -8,33 +8,54 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="bg-light">
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <!-- Navbar Atas -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success shadow-sm fixed-top">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="#">SahabatMart - {% block nav_title %}{% endblock %}</a>
-            <div class="navbar-nav ms-auto flex-row gap-3">
-                <span class="navbar-text text-white">Halo, {{ current_user.full_name }} ({{ current_user.role }})</span>
-                <a class="nav-link text-white" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+            <button class="btn btn-success d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
+                <i class="bi bi-list fs-4"></i>
+            </button>
+            <a class="navbar-brand fw-bold ms-2 ms-md-0" href="#">
+                <i class="bi bi-basket3-fill"></i> SahabatMart
+            </a>
+            <div class="navbar-nav ms-auto flex-row gap-3 align-items-center">
+                <span class="navbar-text text-white d-none d-md-block">
+                    <i class="bi bi-person-circle"></i> {{ current_user.full_name }} 
+                    <small class="badge bg-light text-success">{{ current_user.role }}</small>
+                </span>
+                <a class="btn btn-outline-light btn-sm" href="{{ url_for('auth.logout') }}">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </a>
             </div>
         </div>
     </nav>
 
-    <!-- Sidebar & Content Area -->
-    <div class="container-fluid">
+    <div class="container-fluid" style="margin-top: 60px;">
         <div class="row">
             <!-- Sidebar -->
-            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-white sidebar collapse py-3 shadow-sm">
-                <div class="position-sticky">
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-white sidebar collapse py-3 shadow-sm" style="position: fixed; top: 56px; bottom: 0; left: 0; overflow-y: auto;">
+                <div class="position-sticky pt-3">
+                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+                        <span>Menu Gudang</span>
+                    </h6>
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('gudang.dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+                            <a class="nav-link {% if request.endpoint == 'gudang.dashboard' %}active{% endif %}" href="{{ url_for('gudang.dashboard') }}">
+                                <i class="bi bi-speedometer2"></i> Dashboard
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('gudang.products') }}"><i class="bi bi-box-seam"></i> Produk</a>
+                            <a class="nav-link {% if 'products' in request.endpoint %}active{% endif %}" href="{{ url_for('gudang.products') }}">
+                                <i class="bi bi-box-seam"></i> Inventori Produk
+                            </a>
                         </li>
                         {% if current_user.role == 'SUPER_GUDANG' %}
+                        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+                            <span>Administrasi</span>
+                        </h6>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('gudang.employees') }}"><i class="bi bi-people-fill"></i> Karyawan</a>
+                            <a class="nav-link {% if 'employees' in request.endpoint %}active{% endif %}" href="{{ url_for('gudang.employees') }}">
+                                <i class="bi bi-people-fill"></i> Karyawan Gudang
+                            </a>
                         </li>
                         {% endif %}
                     </ul>
@@ -42,12 +63,11 @@
             </nav>
 
             <!-- Main Content -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
-                <!-- Flash Messages -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4" style="margin-left: 16.66%;">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show">
+                            <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm">
                                 {{ message }}
                                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                             </div>

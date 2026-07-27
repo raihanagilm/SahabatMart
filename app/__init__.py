@@ -8,25 +8,22 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # Inisialisasi Extensions
     db.init_app(app)
     login_manager.init_app(app)
 
-    # User loader untuk Flask-Login
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # Route Root (Halaman Depan)
     @app.route('/')
     def index():
         return redirect(url_for('auth.login'))
 
-    # 1. Register Blueprint Auth
+    # Register Blueprint Auth
     from app.auth import auth_bp
     app.register_blueprint(auth_bp, url_prefix='/auth')
 
-    # 2. [PERBAIKAN] Register Blueprint Gudang
+    # Register Blueprint Gudang
     from app.gudang import gudang_bp
     app.register_blueprint(gudang_bp, url_prefix='/gudang')
 

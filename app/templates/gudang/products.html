@@ -1,16 +1,39 @@
 {% extends "base.html" %}
-{% block title %}Daftar Produk{% endblock %}
-{% block nav_title %}Inventori Produk{% endblock %}
+{% block title %}Inventori Produk{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Daftar Produk</h2>
-    <a href="{{ url_for('gudang.add_product') }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Tambah Produk</a>
+    <h2 class="fw-bold">Inventori Produk</h2>
+    <a href="{{ url_for('gudang.add_product') }}" class="btn btn-primary shadow-sm"><i class="bi bi-plus-lg"></i> Tambah Produk</a>
 </div>
 
-<div class="card shadow-sm">
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('gudang.products') }}" class="row g-3">
+            <div class="col-md-5">
+                <label class="form-label">Cari Produk (Nama / SKU)</label>
+                <input type="text" class="form-control" name="search" value="{{ current_search }}" placeholder="Ketik nama atau SKU...">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Filter Kategori</label>
+                <select class="form-select" name="category_id">
+                    <option value="">-- Semua Kategori --</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}" {{ 'selected' if current_category == cat.id|string else '' }}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-success"><i class="bi bi-search"></i> Filter</button>
+                <a href="{{ url_for('gudang.products') }}" class="btn btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
     <div class="card-body p-0">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0 align-middle">
             <thead class="table-light">
                 <tr>
                     <th>SKU</th>
@@ -25,12 +48,14 @@
                 {% for p in products.items %}
                 <tr>
                     <td><code>{{ p.sku }}</code></td>
-                    <td>{{ p.name }}</td>
+                    <td class="fw-bold">{{ p.name }}</td>
                     <td>{{ p.category.name if p.category else '-' }}</td>
                     <td>Rp {{ "{:,.0f}".format(p.price) }}</td>
                     <td>
                         {% if p.stock < 10 %}
                             <span class="badge bg-danger">{{ p.stock }}</span>
+                        {% elif p.stock < 50 %}
+                            <span class="badge bg-warning text-dark">{{ p.stock }}</span>
                         {% else %}
                             <span class="badge bg-success">{{ p.stock }}</span>
                         {% endif %}
@@ -38,23 +63,19 @@
                     <td class="text-center">
                         <a href="{{ url_for('gudang.product_mutations', product_id=p.id) }}" class="btn btn-sm btn-outline-primary" title="Mutasi Stok"><i class="bi bi-arrow-left-right"></i></a>
                         <a href="{{ url_for('gudang.edit_product', product_id=p.id) }}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="bi bi-pencil"></i></a>
-                        
                         <form method="POST" action="{{ url_for('gudang.delete_product', product_id=p.id) }}" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus produk ini?');">
                             <button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus"><i class="bi bi-trash"></i></button>
                         </form>
                     </td>
                 </tr>
                 {% else %}
-                <tr>
-                    <td colspan="6" class="text-center text-muted py-4">Belum ada produk. Silakan tambah produk baru.</td>
-                </tr>
+                <tr><td colspan="6" class="text-center text-muted py-4">Tidak ada produk yang cocok dengan filter.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- Pagination -->
 {% if products.pages > 1 %}
 <nav class="mt-3">
     <ul class="pagination justify-content-center">
@@ -63,7 +84,7 @@
                 {% if products.page == page_num %}
                     <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
                 {% else %}
-                    <li class="page-item"><a class="page-link" href="{{ url_for('gudang.products', page=page_num) }}">{{ page_num }}</a></li>
+                    <li class="page-item"><a class="page-link" href="{{ url_for('gudang.products', page=page_num, search=current_search, category_id=current_category) }}">{{ page_num }}</a></li>
                 {% endif %}
             {% else %}
                 <li class="page-item disabled"><span class="page-link">...</span></li>

@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 {% block title %}{{ 'Edit' if product else 'Tambah' }} Produk{% endblock %}
-{% block nav_title %}{{ 'Edit' if product else 'Tambah' }} Produk{% endblock %}
 
 {% block content %}
-<h2 class="mb-4">{{ 'Edit' if product else 'Tambah' }} Produk</h2>
+<h2 class="fw-bold mb-4">{{ 'Edit' if product else 'Tambah' }} Produk</h2>
 
-<div class="card shadow-sm">
+<div class="card border-0 shadow-sm">
     <div class="card-body">
         <form method="POST" action="{{ url_for('gudang.edit_product', product_id=product.id) if product else url_for('gudang.add_product') }}">
             <div class="row">

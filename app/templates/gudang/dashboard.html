@@ -1,34 +1,85 @@
 {% extends "base.html" %}
 {% block title %}Dashboard Gudang{% endblock %}
-{% block nav_title %}Dashboard Gudang{% endblock %}
 
 {% block content %}
-<h2 class="mb-4">Ringkasan Stok & Inventori</h2>
+<h2 class="mb-4 fw-bold">Dashboard Inventori</h2>
 
 <div class="row">
-    <div class="col-md-4">
-        <div class="card text-white bg-primary mb-3 shadow">
-            <div class="card-body">
-                <h5 class="card-title">Total Produk</h5>
-                <p class="card-text display-4">{{ total_products }}</p>
+    <div class="col-md-4 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                    <i class="bi bi-box-seam fs-2 text-primary"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-0">Total Produk</h6>
+                    <h3 class="fw-bold mb-0">{{ total_products }}</h3>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card text-white bg-warning mb-3 shadow">
-            <div class="card-body">
-                <h5 class="card-title">Stok Menipis (< 10)</h5>
-                <p class="card-text display-4">{{ low_stock }}</p>
+    <div class="col-md-4 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3">
+                    <i class="bi bi-exclamation-triangle fs-2 text-danger"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-0">Stok Menipis (< 10)</h6>
+                    <h3 class="fw-bold mb-0 text-danger">{{ low_stock }}</h3>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card text-white bg-success mb-3 shadow">
-            <div class="card-body">
-                <h5 class="card-title">Kategori Aktif</h5>
-                <p class="card-text display-4">{{ total_categories }}</p>
+    <div class="col-md-4 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3">
+                    <i class="bi bi-tags fs-2 text-success"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-0">Kategori Aktif</h6>
+                    <h3 class="fw-bold mb-0">{{ total_categories }}</h3>
+                </div>
             </div>
         </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history"></i> 5 Aktivitas Mutasi Terakhir</h5>
+        <a href="{{ url_for('gudang.products') }}" class="btn btn-sm btn-outline-primary">Lihat Semua Produk</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Waktu</th>
+                    <th>Produk (SKU)</th>
+                    <th>Tipe</th>
+                    <th>Jumlah</th>
+                    <th>Oleh</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in recent_mutations %}
+                <tr>
+                    <td><small class="text-muted">{{ m.created_at.strftime('%d-%m-%Y %H:%M') }}</small></td>
+                    <td>{{ m.product.name }} <br><code class="small">{{ m.product.sku }}</code></td>
+                    <td>
+                        {% if m.mutation_type == 'IN' %}<span class="badge bg-success">MASUK</span>
+                        {% elif m.mutation_type == 'OUT' %}<span class="badge bg-danger">KELUAR</span>
+                        {% else %}<span class="badge bg-warning text-dark">KOREKSI</span>{% endif %}
+                    </td>
+                    <td class="fw-bold">{{ m.quantity }}</td>
+                    <td>{{ m.creator.full_name if m.creator else 'Sistem' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-4">Belum ada aktivitas mutasi.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}
