@@ -1,0 +1,43 @@
+# ==========================================
+# SAHABATMART - GITIGNORE
+# ==========================================
+
+# 1. Environment Variables (SANGAT PENTING)
+# Mencegah credential database dan Midtrans key ter-commit ke Git
+.env
+.env.local
+.env.production
+
+# 2. Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 3. Virtual Environment
+# Mengabaikan folder environment agar tidak ter-commit
+venv/
+env/
+.venv/
+ENV/
+
+# 4. IDE & Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 5. OS Generated Files
+.DS_Store
+Thumbs.db
+
+# 6. Flask Specific
+instance/
+.webassets-cache
+
+# 7. Database & Logs (Jika ada file DB lokal atau log)
+*.db
+*.sqlite3
+*.log

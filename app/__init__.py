@@ -1,0 +1,23 @@
+from flask import Flask
+from app.config import Config
+from app.extensions import db, login_manager
+from app.models import User
+
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
+
+    # Inisialisasi Extensions
+    db.init_app(app)
+    login_manager.init_app(app)
+
+    # User loader untuk Flask-Login
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+
+    # Register Blueprint Auth
+    from app.auth import auth_bp
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+
+    return app
