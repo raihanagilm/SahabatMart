@@ -13,11 +13,35 @@
                     <input type="text" id="searchProduct" class="form-control form-control-lg" placeholder="Scan Barcode atau Ketik Nama / SKU Produk..." autofocus>
                 </div>
                 
-                <div id="productList" class="row g-2" style="max-height: 65vh; overflow-y: auto;">
-                    <!-- Produk akan di-load di sini via AJAX -->
+                <div id="productList" class="row g-2" style="max-height: 55vh; overflow-y: auto;">
                     <div class="col-12 text-center text-muted py-5">
                         <div class="spinner-border text-success" role="status"></div>
                         <p class="mt-2">Memuat produk...</p>
+                    </div>
+                </div>
+                
+                <!-- Pagination Controls -->
+                <div id="paginationControls" class="mt-3 d-none">
+                    <nav aria-label="Product pagination">
+                        <ul class="pagination pagination-sm justify-content-center mb-0">
+                            <li class="page-item" id="prevPage">
+                                <a class="page-link" href="#" aria-label="Previous">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item" id="pageNumbers">
+                                <!-- Page numbers will be inserted here -->
+                            </li>
+                            <li class="page-item" id="nextPage">
+                                <a class="page-link" href="#" aria-label="Next">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                    <div class="text-center text-muted small mt-2">
+                        Halaman <span id="currentPage">1</span> dari <span id="totalPages">1</span> 
+                        (<span id="totalItems">0</span> produk)
                     </div>
                 </div>
             </div>
@@ -75,11 +99,9 @@
                     <label class="form-label fw-bold">Jumlah Uang Diterima</label>
                     <div class="input-group mb-2">
                         <span class="input-group-text">Rp</span>
-                        <!-- Step 500 untuk spinner up/down -->
                         <input type="number" id="cashReceived" class="form-control form-control-lg text-end" placeholder="0" min="0" step="500">
                     </div>
                     
-                    <!-- Quick Cash Buttons -->
                     <label class="form-label fw-bold mt-3">Uang Pas / Quick Cash</label>
                     <div class="row g-2 mb-3">
                         <div class="col-6 col-md-3">
@@ -133,45 +155,55 @@
 
 {% block scripts %}
 <script>
-    // State Keranjang
+    // State
     let cart = [];
     let totalAmount = 0;
-    let loadedProducts = {}; // Simpan info produk yang sudah di-load
+    let loadedProducts = {};
+    let currentPage = 1;
+    let totalPages = 1;
+    let currentSearch = '';
 
-    // Format Rupiah
-    const formatRupiah = (number) => {
-        return 'Rp ' + number.toLocaleString('id-ID');
-    };
+    const formatRupiah = (number) => 'Rp ' + number.toLocaleString('id-ID');
 
-    // 1. Load Produk Awal (grid layout dengan horizontal card)
-    function loadProducts(query = '') {
-        fetch(`/kasir/api/products?q=${query}`)
+    // Load Produk dengan Pagination
+    function loadProducts(query = '', page = 1) {
+        currentSearch = query;
+        currentPage = page;
+        
+        const productList = document.getElementById('productList');
+        productList.innerHTML = '<div class="col-12 text-center text-muted py-5"><div class="spinner-border text-success" role="status"></div><p class="mt-2">Memuat produk...</p></div>';
+        
+        fetch(`/kasir/api/products?q=${encodeURIComponent(query)}&page=${page}&per_page=24`)
             .then(response => response.json())
             .then(data => {
-                const productList = document.getElementById('productList');
                 productList.innerHTML = '';
                 
                 // Simpan info produk ke memory
-                data.forEach(p => {
+                data.products.forEach(p => {
                     loadedProducts[p.id] = p;
                 });
                 
-                if (data.length === 0) {
+                // Update pagination state
+                totalPages = data.pagination.total_pages;
+                currentPage = data.pagination.current_page;
+                
+                if (data.products.length === 0) {
                     productList.innerHTML = '<div class="col-12 text-center text-muted py-5">Produk tidak ditemukan.</div>';
+                    document.getElementById('paginationControls').classList.add('d-none');
                     return;
                 }
 
-                data.forEach(p => {
+                // Render products
+                data.products.forEach(p => {
                     const stockBadge = p.stock < 10 
                         ? `<span class="badge bg-danger">Stok: ${p.stock}</span>` 
                         : `<span class="badge bg-success">Stok: ${p.stock}</span>`;
 
-                    // Generate gambar atau placeholder
                     const imageHtml = p.has_image 
                         ? `<img src="/kasir/products/${p.id}/image" alt="${p.name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; flex-shrink: 0;">`
                         : `<div class="bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; border-radius: 6px; flex-shrink: 0;">
-                            <i class="bi bi-image text-muted" style="font-size: 1.5rem;"></i>
-                        </div>`;
+                               <i class="bi bi-image text-muted" style="font-size: 1.5rem;"></i>
+                           </div>`;
 
                     const col = document.createElement('div');
                     col.className = 'col-md-4 col-sm-6';
@@ -179,10 +211,7 @@
                         <div class="card h-100 shadow-sm border-0 product-card mb-2" onclick="addToCart(${p.id}, '${p.name.replace(/'/g, "\\'")}', ${p.price}, ${p.stock})" style="cursor: pointer; transition: all 0.2s;">
                             <div class="card-body p-2">
                                 <div class="d-flex align-items-start">
-                                    <!-- Gambar di kiri -->
                                     ${imageHtml}
-                                    
-                                    <!-- Info produk di kanan -->
                                     <div class="ms-2 flex-grow-1" style="min-width: 0;">
                                         <h6 class="fw-bold mb-1" style="font-size: 0.85rem; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${p.name}</h6>
                                         <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">${p.sku}</small>
@@ -197,9 +226,80 @@
                     `;
                     productList.appendChild(col);
                 });
+                
+                // Show pagination
+                renderPagination(data.pagination);
             });
     }
-    // 2. Tambah ke Keranjang (dengan info gambar)
+
+    // Render Pagination Controls
+    function renderPagination(pagination) {
+        const paginationControls = document.getElementById('paginationControls');
+        const pageNumbers = document.getElementById('pageNumbers');
+        const prevPage = document.getElementById('prevPage');
+        const nextPage = document.getElementById('nextPage');
+        
+        // Update info
+        document.getElementById('currentPage').textContent = pagination.current_page;
+        document.getElementById('totalPages').textContent = pagination.total_pages;
+        document.getElementById('totalItems').textContent = pagination.total_items;
+        
+        // Show/hide pagination
+        if (pagination.total_pages > 1) {
+            paginationControls.classList.remove('d-none');
+        } else {
+            paginationControls.classList.add('d-none');
+            return;
+        }
+        
+        // Prev button
+        prevPage.classList.toggle('disabled', !pagination.has_prev);
+        prevPage.querySelector('a').onclick = (e) => {
+            e.preventDefault();
+            if (pagination.has_prev) loadProducts(currentSearch, currentPage - 1);
+        };
+        
+        // Next button
+        nextPage.classList.toggle('disabled', !pagination.has_next);
+        nextPage.querySelector('a').onclick = (e) => {
+            e.preventDefault();
+            if (pagination.has_next) loadProducts(currentSearch, currentPage + 1);
+        };
+        
+        // Page numbers
+        pageNumbers.innerHTML = '';
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(pagination.total_pages, startPage + maxVisible - 1);
+        
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+        
+        // First page
+        if (startPage > 1) {
+            pageNumbers.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="event.preventDefault(); loadProducts('${currentSearch}', 1)">1</a></li>`;
+            if (startPage > 2) {
+                pageNumbers.innerHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+        
+        // Page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            const active = i === currentPage ? 'active' : '';
+            pageNumbers.innerHTML += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="event.preventDefault(); loadProducts('${currentSearch}', ${i})">${i}</a></li>`;
+        }
+        
+        // Last page
+        if (endPage < pagination.total_pages) {
+            if (endPage < pagination.total_pages - 1) {
+                pageNumbers.innerHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+            pageNumbers.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="event.preventDefault(); loadProducts('${currentSearch}', ${pagination.total_pages})">${pagination.total_pages}</a></li>`;
+        }
+    }
+
+    // Add to Cart
     function addToCart(id, name, price, stock) {
         const existingItem = cart.find(item => item.product_id === id);
         
@@ -214,7 +314,6 @@
                 alert('Stok habis!');
                 return;
             }
-            // Ambil info has_image dari loadedProducts
             const hasImage = loadedProducts[id] ? loadedProducts[id].has_image : false;
             cart.push({ 
                 product_id: id, 
@@ -228,7 +327,7 @@
         renderCart();
     }
 
-    // 3. Render Keranjang (dengan thumbnail gambar)
+    // Render Cart
     function renderCart() {
         const cartList = document.getElementById('cartList');
         const cartTotal = document.getElementById('cartTotal');
@@ -246,7 +345,6 @@
                 const subtotal = item.price * item.quantity;
                 totalAmount += subtotal;
 
-                // Tambahkan gambar thumbnail di keranjang
                 const imageHtml = item.has_image 
                     ? `<img src="/kasir/products/${item.product_id}/image" alt="${item.name}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;" class="me-2">`
                     : `<div class="bg-light d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px; border-radius: 4px;">
@@ -299,13 +397,17 @@
         renderCart();
     }
 
-    // 4. Event Listeners
+    // Event Listeners
     document.addEventListener('DOMContentLoaded', () => {
         loadProducts();
 
-        // Search Product
+        // Search with debounce
+        let searchTimeout;
         document.getElementById('searchProduct').addEventListener('input', function() {
-            loadProducts(this.value);
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                loadProducts(this.value, 1); // Reset ke halaman 1 saat search
+            }, 300);
         });
 
         // Clear Cart
@@ -325,7 +427,7 @@
             new bootstrap.Modal(document.getElementById('paymentModal')).show();
         });
 
-        // Calculate Change (Kembalian)
+        // Calculate Change
         document.getElementById('cashReceived').addEventListener('input', function() {
             const received = parseFloat(this.value) || 0;
             const change = received - totalAmount;
@@ -334,21 +436,15 @@
             document.getElementById('displayChange').className = change >= 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
         });
 
-        // Quick Cash Buttons Logic
+        // Quick Cash Buttons
         document.querySelectorAll('.quick-cash').forEach(btn => {
             btn.addEventListener('click', function() {
                 const cashInput = document.getElementById('cashReceived');
-                
                 if (this.id === 'btnExactChange') {
-                    // Uang pas = total amount
                     cashInput.value = totalAmount;
                 } else {
-                    // Quick cash amount
-                    const amount = parseInt(this.dataset.amount);
-                    cashInput.value = amount;
+                    cashInput.value = parseInt(this.dataset.amount);
                 }
-                
-                // Trigger input event untuk update kalkulasi kembalian
                 cashInput.dispatchEvent(new Event('input'));
             });
         });
@@ -363,7 +459,6 @@
                 return;
             }
 
-            // Disable button to prevent double click
             const btn = document.getElementById('btnProcessPayment');
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Memproses...';
@@ -380,15 +475,12 @@
             .then(data => {
                 if (data.success) {
                     bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
-                    
                     document.getElementById('successOrderNumber').textContent = data.order_number;
                     document.getElementById('successTotal').textContent = formatRupiah(data.total_amount);
                     new bootstrap.Modal(document.getElementById('successModal')).show();
-                    
-                    // Reset cart
                     cart = [];
                     renderCart();
-                    loadProducts(); // Reload products to update stock
+                    loadProducts(currentSearch, currentPage);
                 } else {
                     alert('Error: ' + data.message);
                 }
@@ -407,9 +499,10 @@
         document.getElementById('btnNewTransaction').addEventListener('click', () => {
             document.getElementById('searchProduct').value = '';
             document.getElementById('searchProduct').focus();
+            loadProducts('', 1);
         });
 
-        // Shortcut F2 for Checkout
+        // Shortcut F2
         document.addEventListener('keydown', (e) => {
             if (e.key === 'F2') {
                 e.preventDefault();

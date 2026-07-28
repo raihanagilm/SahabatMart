@@ -157,27 +157,41 @@ def activity_logs():
 def pos():
     return render_template('pos.html')
 
-# API: Mencari Produk untuk POS (AJAX)
+# API: Mencari Produk untuk POS (dengan Pagination)
 @kasir_bp.route('/api/products')
 @kasir_required
 def api_products():
     q = request.args.get('q', '')
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 24, type=int)  # Default 24 produk per halaman
+    
     query = Product.query.filter_by(is_active=True)
     
     if q:
         query = query.filter(or_(Product.name.ilike(f'%{q}%'), Product.sku.ilike(f'%{q}%')))
     
-    # Batasi 20 hasil agar respons cepat
-    products = query.limit(20).all() 
-    return jsonify([{
-        'id': p.id,
-        'sku': p.sku,
-        'name': p.name,
-        'price': float(p.price),
-        'stock': p.stock,
-        'has_image': p.image_blob is not None  # [BARU] Flag apakah produk punya gambar
-    } for p in products])
-
+    # Paginasi
+    products_paginated = query.order_by(Product.name).paginate(page=page, per_page=per_page, error_out=False)
+    
+    return jsonify({
+        'products': [{
+            'id': p.id,
+            'sku': p.sku,
+            'name': p.name,
+            'price': float(p.price),
+            'stock': p.stock,
+            'has_image': p.image_blob is not None
+        } for p in products_paginated.items],
+        'pagination': {
+            'current_page': products_paginated.page,
+            'total_pages': products_paginated.pages,
+            'total_items': products_paginated.total,
+            'has_next': products_paginated.has_next,
+            'has_prev': products_paginated.has_prev
+        }
+    })
+    
+    
 # [BARU] Endpoint untuk serve gambar produk dari BLOB (untuk kasir)
 @kasir_bp.route('/products/<int:product_id>/image')
 @kasir_required
