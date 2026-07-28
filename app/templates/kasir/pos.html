@@ -19,29 +19,31 @@
                         <p class="mt-2">Memuat produk...</p>
                     </div>
                 </div>
-                
-                <!-- Pagination Controls -->
-                <div id="paginationControls" class="mt-3 d-none">
+                                
+                <!-- Pagination Controls (Style sama seperti Gudang) -->
+                <div id="paginationControls" class="mt-4 d-none">
                     <nav aria-label="Product pagination">
-                        <ul class="pagination pagination-sm justify-content-center mb-0">
+                        <ul class="pagination justify-content-center">
                             <li class="page-item" id="prevPage">
                                 <a class="page-link" href="#" aria-label="Previous">
-                                    <i class="bi bi-chevron-left"></i>
+                                    <i class="bi bi-chevron-left"></i> Sebelumnya
                                 </a>
                             </li>
+                            
                             <li class="page-item" id="pageNumbers">
-                                <!-- Page numbers will be inserted here -->
+                                <!-- Page numbers will be inserted here by JavaScript -->
                             </li>
+                            
                             <li class="page-item" id="nextPage">
                                 <a class="page-link" href="#" aria-label="Next">
-                                    <i class="bi bi-chevron-right"></i>
+                                    Selanjutnya <i class="bi bi-chevron-right"></i>
                                 </a>
                             </li>
                         </ul>
                     </nav>
                     <div class="text-center text-muted small mt-2">
-                        Halaman <span id="currentPage">1</span> dari <span id="totalPages">1</span> 
-                        (<span id="totalItems">0</span> produk)
+                        Menampilkan halaman <strong id="currentPage">1</strong> dari <strong id="totalPages">1</strong> 
+                        (Total: <strong id="totalItems">0</strong> produk)
                     </div>
                 </div>
             </div>
@@ -232,19 +234,19 @@
             });
     }
 
-    // Render Pagination Controls
+    // Render Pagination Controls (Style konsisten dengan Gudang)
     function renderPagination(pagination) {
         const paginationControls = document.getElementById('paginationControls');
         const pageNumbers = document.getElementById('pageNumbers');
         const prevPage = document.getElementById('prevPage');
         const nextPage = document.getElementById('nextPage');
         
-        // Update info
+        // Update info teks
         document.getElementById('currentPage').textContent = pagination.current_page;
         document.getElementById('totalPages').textContent = pagination.total_pages;
-        document.getElementById('totalItems').textContent = pagination.total_items;
+        document.getElementById('totalItems').textContent = pagination.total_items.toLocaleString('id-ID');
         
-        // Show/hide pagination
+        // Show/hide pagination controls
         if (pagination.total_pages > 1) {
             paginationControls.classList.remove('d-none');
         } else {
@@ -252,50 +254,75 @@
             return;
         }
         
-        // Prev button
+        // Previous button
         prevPage.classList.toggle('disabled', !pagination.has_prev);
         prevPage.querySelector('a').onclick = (e) => {
             e.preventDefault();
-            if (pagination.has_prev) loadProducts(currentSearch, currentPage - 1);
+            if (pagination.has_prev) {
+                loadProducts(currentSearch, currentPage - 1);
+                // Scroll ke atas daftar produk
+                document.getElementById('productList').scrollTop = 0;
+            }
         };
         
         // Next button
         nextPage.classList.toggle('disabled', !pagination.has_next);
         nextPage.querySelector('a').onclick = (e) => {
             e.preventDefault();
-            if (pagination.has_next) loadProducts(currentSearch, currentPage + 1);
+            if (pagination.has_next) {
+                loadProducts(currentSearch, currentPage + 1);
+                // Scroll ke atas daftar produk
+                document.getElementById('productList').scrollTop = 0;
+            }
         };
         
-        // Page numbers
+        // Generate page numbers
         pageNumbers.innerHTML = '';
-        const maxVisible = 5;
+        const maxVisible = 5; // Maksimal 5 nomor halaman yang terlihat
         let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
         let endPage = Math.min(pagination.total_pages, startPage + maxVisible - 1);
         
+        // Adjust jika mendekati akhir
         if (endPage - startPage < maxVisible - 1) {
             startPage = Math.max(1, endPage - maxVisible + 1);
         }
         
-        // First page
+        // First page + ellipsis
         if (startPage > 1) {
-            pageNumbers.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="event.preventDefault(); loadProducts('${currentSearch}', 1)">1</a></li>`;
+            const firstLi = document.createElement('li');
+            firstLi.className = 'page-item';
+            firstLi.innerHTML = `<a class="page-link" href="#" onclick="event.preventDefault(); loadProducts('${currentSearch}', 1)">1</a>`;
+            pageNumbers.appendChild(firstLi);
+            
             if (startPage > 2) {
-                pageNumbers.innerHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                const ellipsisLi = document.createElement('li');
+                ellipsisLi.className = 'page-item disabled';
+                ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+                pageNumbers.appendChild(ellipsisLi);
             }
         }
         
-        // Page numbers
+        // Page numbers (middle)
         for (let i = startPage; i <= endPage; i++) {
-            const active = i === currentPage ? 'active' : '';
-            pageNumbers.innerHTML += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="event.preventDefault(); loadProducts('${currentSearch}', ${i})">${i}</a></li>`;
+            const li = document.createElement('li');
+            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#" onclick="event.preventDefault(); loadProducts('${currentSearch}', ${i})">${i}</a>`;
+            pageNumbers.appendChild(li);
         }
         
-        // Last page
+        // Last page + ellipsis
         if (endPage < pagination.total_pages) {
             if (endPage < pagination.total_pages - 1) {
-                pageNumbers.innerHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                const ellipsisLi = document.createElement('li');
+                ellipsisLi.className = 'page-item disabled';
+                ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+                pageNumbers.appendChild(ellipsisLi);
             }
-            pageNumbers.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="event.preventDefault(); loadProducts('${currentSearch}', ${pagination.total_pages})">${pagination.total_pages}</a></li>`;
+            
+            const lastLi = document.createElement('li');
+            lastLi.className = 'page-item';
+            lastLi.innerHTML = `<a class="page-link" href="#" onclick="event.preventDefault(); loadProducts('${currentSearch}', ${pagination.total_pages})">${pagination.total_pages}</a>`;
+            pageNumbers.appendChild(lastLi);
         }
     }
 

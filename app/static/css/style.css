@@ -139,3 +139,51 @@ body {
     background-color: #e9ecef;
     color: #198754;
 }
+
+/* ==========================================
+   PAGINATION STYLING (Konsisten dengan Gudang)
+   ========================================== */
+.pagination {
+    margin-bottom: 0;
+}
+
+.pagination .page-link {
+    border-radius: 8px;
+    margin: 0 2px;
+    padding: 0.5rem 0.75rem;
+    font-weight: 500;
+    color: #198754;
+    border: 1px solid #dee2e6;
+    transition: all 0.2s ease;
+}
+
+.pagination .page-link:hover {
+    background-color: #f8f9fa;
+    border-color: #198754;
+    color: #198754;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #198754;
+    border-color: #198754;
+    color: white;
+    box-shadow: 0 2px 4px rgba(25, 135, 84, 0.2);
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    cursor: not-allowed;
+}
+
+/* Info teks di bawah pagination */
+#paginationControls .text-muted {
+    font-size: 0.875rem;
+    color: #6c757d !important;
+}
+
+#paginationControls strong {
+    color: #198754;
+    font-weight: 600;
+}
