@@ -1,5 +1,5 @@
-# app/__init__.py
-from flask import Flask, redirect, url_for, request
+from flask import Flask, redirect, url_for
+from werkzeug.middleware.proxy_fix import ProxyFix  # <-- TAMBAHKAN INI
 from app.config import Config
 from app.extensions import db, login_manager
 from app.models import User
@@ -7,6 +7,12 @@ from app.models import User
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # TAMBAHKAN INI: Beritahu Flask bahwa dia berada di belakang proxy Vercel (HTTPS)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+    # Nonaktifkan strict slashes untuk mencegah loop /route vs /route/
+    app.url_map.strict_slashes = False
 
     db.init_app(app)
     login_manager.init_app(app)
@@ -18,23 +24,6 @@ def create_app():
     @app.route('/')
     def index():
         return redirect(url_for('auth.login'))
-    # Di dalam fungsi create_app(), setelah app = Flask(__name__)
-
-    @app.after_request
-    def add_cache_headers(response):
-        """Tambahkan cache headers untuk static files"""
-        
-        # Cache untuk gambar dan static assets (1 tahun)
-        if request.path.startswith('/static/'):
-            if any(request.path.endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif', '.ico', '.svg', '.webp']):
-                response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
-                response.headers['Expires'] = 'Thu, 31 Dec 2037 23:59:59 GMT'
-            
-            # Cache untuk CSS dan JS (1 minggu)
-            elif any(request.path.endswith(ext) for ext in ['.css', '.js']):
-                response.headers['Cache-Control'] = 'public, max-age=604800'  # 7 hari
-        
-        return response
 
     # Register Blueprint Auth
     from app.auth import auth_bp
@@ -43,10 +32,9 @@ def create_app():
     # Register Blueprint Gudang
     from app.gudang import gudang_bp
     app.register_blueprint(gudang_bp, url_prefix='/gudang')
-    
-    # [BARU] Register Blueprint Kasir
+
+    # Register Blueprint Kasir
     from app.kasir import kasir_bp
     app.register_blueprint(kasir_bp, url_prefix='/kasir')
 
     return app
-
