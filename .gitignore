@@ -41,3 +41,5 @@ instance/
 *.db
 *.sqlite3
 *.log
+.vercel
+.env*
