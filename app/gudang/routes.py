@@ -213,15 +213,20 @@ def product_image(product_id):
     product = Product.query.get_or_404(product_id)
     
     if not product.image_blob:
-        # Return placeholder image jika tidak ada gambar
         return Response(status=404)
     
+    # Return gambar dengan cache headers yang agresif
     return Response(
         product.image_blob,
         mimetype='image/jpeg',
-        headers={'Cache-Control': 'max-age=86400'}  # Cache 1 hari
+        headers={
+            'Cache-Control': 'public, max-age=31536000, immutable',  # Cache 1 tahun
+            'Expires': 'Thu, 31 Dec 2037 23:59:59 GMT',
+            'Pragma': 'public',
+            'Vary': 'Accept-Encoding'
+        }
     )
-
+    
 @gudang_bp.route('/products/<int:product_id>/delete', methods=['POST'])
 @gudang_required
 def delete_product(product_id):
