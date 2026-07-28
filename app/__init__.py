@@ -26,5 +26,10 @@ def create_app():
     # Register Blueprint Gudang
     from app.gudang import gudang_bp
     app.register_blueprint(gudang_bp, url_prefix='/gudang')
+    
+    # [BARU] Register Blueprint Kasir
+    from app.kasir import kasir_bp
+    app.register_blueprint(kasir_bp, url_prefix='/kasir')
 
     return app
+

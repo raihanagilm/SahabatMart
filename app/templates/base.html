@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}SahabatMart{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -31,9 +32,14 @@
 
     <div class="container-fluid" style="margin-top: 60px;">
         <div class="row">
-            <!-- Sidebar -->
+            <!-- Sidebar Dinamis -->
             <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-white sidebar collapse py-3 shadow-sm" style="position: fixed; top: 56px; bottom: 0; left: 0; overflow-y: auto;">
                 <div class="position-sticky pt-3">
+                    
+                    {# ========================================== #}
+                    {# MENU GUDANG #}
+                    {# ========================================== #}
+                    {% if current_user.role in ['SUPER_GUDANG', 'KARYAWAN_GUDANG', 'GUDANG'] %}
                     <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
                         <span>Menu Gudang</span>
                     </h6>
@@ -57,13 +63,62 @@
                                 <i class="bi bi-people-fill"></i> Karyawan Gudang
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'activity_logs' in request.endpoint %}active{% endif %}" href="{{ url_for('gudang.activity_logs') }}">
+                                <i class="bi bi-journal-text"></i> Log Aktivitas
+                            </a>
+                        </li>
                         {% endif %}
                     </ul>
+                    {% endif %}
+
+                    {# ========================================== #}
+                    {# MENU KASIR #}
+                    {# ========================================== #}
+                    {% if current_user.role in ['SUPER_KASIR', 'KARYAWAN_KASIR'] %}
+                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+                        <span>Menu Kasir</span>
+                    </h6>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'kasir.dashboard' %}active{% endif %}" href="{{ url_for('kasir.dashboard') }}">
+                                <i class="bi bi-speedometer2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'kasir.pos' %}active{% endif %}" href="{{ url_for('kasir.pos') }}">
+                                <i class="bi bi-cart-check"></i> Transaksi (POS)
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'transactions' in request.endpoint %}active{% endif %}" href="{{ url_for('kasir.transactions') }}">
+                                <i class="bi bi-receipt"></i> Riwayat Transaksi
+                            </a>
+                        </li>
+                        {% if current_user.role == 'SUPER_KASIR' %}
+                        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+                            <span>Administrasi</span>
+                        </h6>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'employees' in request.endpoint %}active{% endif %}" href="{{ url_for('kasir.employees') }}">
+                                <i class="bi bi-people-fill"></i> Karyawan Kasir
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'activity_logs' in request.endpoint %}active{% endif %}" href="{{ url_for('kasir.activity_logs') }}">
+                                <i class="bi bi-journal-text"></i> Log Aktivitas
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                    {% endif %}
+
                 </div>
             </nav>
 
             <!-- Main Content -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4" style="margin-left: 16.66%;">
+                <!-- Flash Messages -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
@@ -81,6 +136,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

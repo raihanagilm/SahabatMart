@@ -3,10 +3,13 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold">Inventori Produk</h2>
-    <a href="{{ url_for('gudang.add_product') }}" class="btn btn-primary shadow-sm"><i class="bi bi-plus-lg"></i> Tambah Produk</a>
+    <h2 class="fw-bold"><i class="bi bi-box-seam"></i> Inventori Produk</h2>
+    <a href="{{ url_for('gudang.add_product') }}" class="btn btn-primary shadow-sm">
+        <i class="bi bi-plus-lg"></i> Tambah Produk
+    </a>
 </div>
 
+<!-- Form Search & Filter -->
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-body">
         <form method="GET" action="{{ url_for('gudang.products') }}" class="row g-3">
@@ -24,73 +27,183 @@
                 </select>
             </div>
             <div class="col-md-3 d-flex align-items-end gap-2">
-                <button type="submit" class="btn btn-success"><i class="bi bi-search"></i> Filter</button>
-                <a href="{{ url_for('gudang.products') }}" class="btn btn-outline-secondary">Reset</a>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-search"></i> Filter
+                </button>
+                <a href="{{ url_for('gudang.products') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Reset
+                </a>
             </div>
         </form>
     </div>
 </div>
 
+<!-- Tabel Produk -->
 <div class="card border-0 shadow-sm">
     <div class="card-body p-0">
-        <table class="table table-hover mb-0 align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>SKU</th>
-                    <th>Nama Produk</th>
-                    <th>Kategori</th>
-                    <th>Harga</th>
-                    <th>Stok</th>
-                    <th class="text-center">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for p in products.items %}
-                <tr>
-                    <td><code>{{ p.sku }}</code></td>
-                    <td class="fw-bold">{{ p.name }}</td>
-                    <td>{{ p.category.name if p.category else '-' }}</td>
-                    <td>Rp {{ "{:,.0f}".format(p.price) }}</td>
-                    <td>
-                        {% if p.stock < 10 %}
-                            <span class="badge bg-danger">{{ p.stock }}</span>
-                        {% elif p.stock < 50 %}
-                            <span class="badge bg-warning text-dark">{{ p.stock }}</span>
-                        {% else %}
-                            <span class="badge bg-success">{{ p.stock }}</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-center">
-                        <a href="{{ url_for('gudang.product_mutations', product_id=p.id) }}" class="btn btn-sm btn-outline-primary" title="Mutasi Stok"><i class="bi bi-arrow-left-right"></i></a>
-                        <a href="{{ url_for('gudang.edit_product', product_id=p.id) }}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="bi bi-pencil"></i></a>
-                        <form method="POST" action="{{ url_for('gudang.delete_product', product_id=p.id) }}" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus produk ini?');">
-                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus"><i class="bi bi-trash"></i></button>
-                        </form>
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="6" class="text-center text-muted py-4">Tidak ada produk yang cocok dengan filter.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 80px;">Gambar</th>
+                        <th>SKU</th>
+                        <th>Nama Produk</th>
+                        <th>Kategori</th>
+                        <th class="text-end">Harga</th>
+                        <th class="text-center">Stok</th>
+                        <th class="text-center" style="width: 150px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in products.items %}
+                    <tr>
+                        <td class="text-center">
+                            {% if p.image_blob %}
+                                <img src="{{ url_for('gudang.product_image', product_id=p.id) }}" 
+                                     alt="{{ p.name }}" 
+                                     class="img-thumbnail rounded" 
+                                     style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;"
+                                     data-bs-toggle="modal" 
+                                     data-bs-target="#imageModal"
+                                     data-image-src="{{ url_for('gudang.product_image', product_id=p.id) }}"
+                                     data-product-name="{{ p.name }}">
+                            {% else %}
+                                <div class="bg-light d-flex align-items-center justify-content-center rounded" style="width: 50px; height: 50px;">
+                                    <i class="bi bi-image text-muted fs-4"></i>
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td><code class="fw-bold">{{ p.sku }}</code></td>
+                        <td class="fw-bold">{{ p.name }}</td>
+                        <td>
+                            {% if p.category %}
+                                <span class="badge bg-secondary">{{ p.category.name }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-bold">Rp {{ "{:,.0f}".format(p.price) }}</td>
+                        <td class="text-center">
+                            {% if p.stock < 10 %}
+                                <span class="badge bg-danger fs-6">{{ p.stock }}</span>
+                            {% elif p.stock < 50 %}
+                                <span class="badge bg-warning text-dark fs-6">{{ p.stock }}</span>
+                            {% else %}
+                                <span class="badge bg-success fs-6">{{ p.stock }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('gudang.product_mutations', product_id=p.id) }}" 
+                                   class="btn btn-sm btn-outline-primary" 
+                                   title="Mutasi Stok">
+                                    <i class="bi bi-arrow-left-right"></i>
+                                </a>
+                                <a href="{{ url_for('gudang.edit_product', product_id=p.id) }}" 
+                                   class="btn btn-sm btn-outline-warning" 
+                                   title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="POST" action="{{ url_for('gudang.delete_product', product_id=p.id) }}" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus produk {{ p.name }}?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-5">
+                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                            Tidak ada produk yang cocok dengan filter.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
+<!-- Pagination -->
 {% if products.pages > 1 %}
-<nav class="mt-3">
+<nav class="mt-4">
     <ul class="pagination justify-content-center">
+        {% if products.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('gudang.products', page=products.prev_num, search=current_search, category_id=current_category) }}">
+                    <i class="bi bi-chevron-left"></i> Sebelumnya
+                </a>
+            </li>
+        {% endif %}
+        
         {% for page_num in products.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
             {% if page_num %}
                 {% if products.page == page_num %}
-                    <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
+                    <li class="page-item active">
+                        <a class="page-link" href="#">{{ page_num }}</a>
+                    </li>
                 {% else %}
-                    <li class="page-item"><a class="page-link" href="{{ url_for('gudang.products', page=page_num, search=current_search, category_id=current_category) }}">{{ page_num }}</a></li>
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('gudang.products', page=page_num, search=current_search, category_id=current_category) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
                 {% endif %}
             {% else %}
-                <li class="page-item disabled"><span class="page-link">...</span></li>
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
             {% endif %}
         {% endfor %}
+        
+        {% if products.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('gudang.products', page=products.next_num, search=current_search, category_id=current_category) }}">
+                    Selanjutnya <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        {% endif %}
     </ul>
 </nav>
 {% endif %}
+
+<!-- Modal Preview Gambar -->
+<div class="modal fade" id="imageModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="imageModalLabel">Preview Gambar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" src="" alt="" class="img-fluid rounded">
+                <p class="mt-3 text-muted" id="modalProductName"></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle image modal preview
+    var imageModal = document.getElementById('imageModal');
+    if (imageModal) {
+        imageModal.addEventListener('show.bs.modal', function(event) {
+            var button = event.relatedTarget;
+            var imageSrc = button.getAttribute('data-image-src');
+            var productName = button.getAttribute('data-product-name');
+            
+            var modalImage = imageModal.querySelector('#modalImage');
+            var modalTitle = imageModal.querySelector('#modalProductName');
+            
+            modalImage.src = imageSrc;
+            modalTitle.textContent = productName;
+        });
+    }
+});
+</script>
 {% endblock %}

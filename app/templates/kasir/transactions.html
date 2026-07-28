@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}Riwayat Transaksi{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold"><i class="bi bi-receipt"></i> Riwayat Transaksi POS</h2>
+</div>
+
+<!-- Filter -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('kasir.transactions') }}" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Cari No. Transaksi</label>
+                <input type="text" class="form-control" name="search" value="{{ current_search }}" placeholder="POS-2023...">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Filter Tanggal</label>
+                <input type="date" class="form-control" name="date" value="{{ current_date }}">
+            </div>
+            <div class="col-md-4 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-success"><i class="bi bi-search"></i> Filter</button>
+                <a href="{{ url_for('kasir.transactions') }}" class="btn btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabel Transaksi -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>No. Transaksi</th>
+                        <th>Tanggal & Waktu</th>
+                        <th>Kasir</th>
+                        <th>Metode Bayar</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in orders.items %}
+                    <tr>
+                        <td><code class="fw-bold">{{ o.order_number }}</code></td>
+                        <td>{{ o.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
+                        <td>{{ o.user.full_name if o.user else '-' }}</td>
+                        <td>
+                            {% if o.payment_method == 'CASH' %}
+                                <span class="badge bg-success">TUNAI</span>
+                            {% else %}
+                                <span class="badge bg-primary">{{ o.payment_method }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-bold text-success">Rp {{ "{:,.0f}".format(o.total_amount) }}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-primary btn-detail" data-id="{{ o.id }}">
+                                <i class="bi bi-eye"></i> Detail
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">Tidak ada transaksi ditemukan.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if orders.pages > 1 %}
+<nav class="mt-3">
+    <ul class="pagination justify-content-center">
+        {% for page_num in orders.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+                {% if orders.page == page_num %}
+                    <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
+                {% else %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('kasir.transactions', page=page_num, date=current_date, search=current_search) }}">{{ page_num }}</a></li>
+                {% endif %}
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Modal Detail Transaksi -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-receipt"></i> Detail Transaksi</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detailContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-2">Memuat detail...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const formatRupiah = (number) => 'Rp ' + number.toLocaleString('id-ID');
+    
+    document.querySelectorAll('.btn-detail').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const orderId = this.dataset.id;
+            const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+            const content = document.getElementById('detailContent');
+            
+            content.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2">Memuat detail...</p></div>';
+            modal.show();
+            
+            fetch(`/kasir/api/transactions/${orderId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        let itemsHtml = data.items.map(item => `
+                            <tr>
+                                <td>${item.name}<br><small class="text-muted">${item.sku}</small></td>
+                                <td class="text-center">${item.quantity}</td>
+                                <td class="text-end">${formatRupiah(item.price)}</td>
+                                <td class="text-end fw-bold">${formatRupiah(item.subtotal)}</td>
+                            </tr>
+                        `).join('');
+                        
+                        content.innerHTML = `
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>No. Transaksi:</strong> <code>${data.order_number}</code></p>
+                                    <p class="mb-1"><strong>Tanggal:</strong> ${data.date}</p>
+                                </div>
+                                <div class="col-md-6 text-md-end">
+                                    <p class="mb-1"><strong>Kasir:</strong> ${data.cashier}</p>
+                                    <p class="mb-1"><strong>Metode Bayar:</strong> 
+                                        <span class="badge bg-${data.payment_method === 'CASH' ? 'success' : 'primary'}">${data.payment_method}</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <table class="table table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Produk</th>
+                                        <th class="text-center">Qty</th>
+                                        <th class="text-end">Harga</th>
+                                        <th class="text-end">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${itemsHtml}</tbody>
+                                <tfoot>
+                                    <tr class="table-success">
+                                        <td colspan="3" class="text-end fw-bold fs-5">TOTAL:</td>
+                                        <td class="text-end fw-bold fs-5 text-success">${formatRupiah(data.total_amount)}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        `;
+                    } else {
+                        content.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+                    }
+                })
+                .catch(err => {
+                    content.innerHTML = '<div class="alert alert-danger">Gagal memuat detail transaksi.</div>';
+                });
+        });
+    });
+});
+</script>
+{% endblock %}
