@@ -4,7 +4,7 @@ from functools import wraps
 from app.utils.image_handler import compress_image_to_blob
 from sqlalchemy import or_
 from werkzeug.security import generate_password_hash
-
+from sqlalchemy.orm import joinedload
 from . import gudang_bp
 from app.models import User, Product, Category, StockMutation, ActivityLog
 from app.extensions import db
@@ -18,7 +18,6 @@ def log_activity(action, description=None):
         ip_address=request.remote_addr
     )
     db.session.add(log)
-    db.session.commit()
     
 # Decorator untuk membatasi akses hanya untuk role Gudang
 def gudang_required(f):
@@ -84,21 +83,22 @@ def products():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
     category_id = request.args.get('category_id', '', type=str)
-    
-    query = Product.query
-    
+
+    # TAMBAHKAN joinedload di sini agar kategori dimuat sekaligus
+    query = Product.query.options(joinedload(Product.category))
+
     if search:
         query = query.filter(or_(Product.name.ilike(f'%{search}%'), Product.sku.ilike(f'%{search}%')))
-        
+
     if category_id:
         query = query.filter_by(category_id=int(category_id))
-        
-    products = query.order_by(Product.name.asc()).paginate(page=page, per_page=10)
-    categories = Category.query.all()
-    
-    return render_template('products.html', products=products, categories=categories, 
-                           current_search=search, current_category=category_id)
 
+    products = query.order_by(Product.name.asc()).paginate(page=page, per_page=15) # Naikkan per_page sedikit
+    categories = Category.query.all()
+
+    return render_template('gudang/products.html', products=products, categories=categories,
+                           current_search=search, current_category=category_id)
+    
 @gudang_bp.route('/products/add', methods=['GET', 'POST'])
 @gudang_required
 def add_product():

@@ -3,6 +3,8 @@ from flask_login import login_required, current_user
 from functools import wraps
 from datetime import datetime
 from sqlalchemy import or_
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 
 from . import kasir_bp
 from app.models import User, Product, Order, OrderItem, StockMutation, ActivityLog
@@ -28,7 +30,6 @@ def log_activity(action, description=None):
         ip_address=request.remote_addr
     )
     db.session.add(log)
-    db.session.commit()
 
 # ==========================================
 # DASHBOARD KASIR
@@ -38,29 +39,34 @@ def log_activity(action, description=None):
 def dashboard():
     today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     
-    today_orders = Order.query.filter(
+    # 1. Hitung total transaksi dan revenue langsung dari DB (1 Query)
+    stats = db.session.query(
+        func.count(Order.id).label('total_tx'),
+        func.coalesce(func.sum(Order.total_amount), 0).label('total_rev')
+    ).filter(
         Order.order_type == 'POS',
         Order.created_at >= today_start,
         Order.payment_status == 'SUCCESS'
-    ).all()
+    ).first()
     
-    total_transactions_today = len(today_orders)
-    total_revenue_today = sum(order.total_amount for order in today_orders)
+    total_transactions_today = stats.total_tx or 0
+    total_revenue_today = float(stats.total_rev or 0)
     
-    total_items_sold_today = 0
-    for order in today_orders:
-        for item in order.items:
-            total_items_sold_today += item.quantity
-            
+    # 2. Hitung total item terjual dengan JOIN (1 Query, bukan N+1)
+    items_sold = db.session.query(func.coalesce(func.sum(OrderItem.quantity), 0)).join(Order).filter(
+        Order.order_type == 'POS',
+        Order.created_at >= today_start,
+        Order.payment_status == 'SUCCESS'
+    ).scalar()
+    
+    total_items_sold_today = items_sold or 0
     avg_transaction = total_revenue_today / total_transactions_today if total_transactions_today > 0 else 0
 
-    # PENTING: Gunakan path eksplisit 'kasir/dashboard.html'
-    return render_template('kasir/dashboard.html', 
+    return render_template('kasir/dashboard.html',
                            total_transactions=total_transactions_today,
                            total_revenue=total_revenue_today,
                            total_items_sold=total_items_sold_today,
                            avg_transaction=avg_transaction)
-    
     
 # ==========================================
 # MANAJEMEN KARYAWAN KASIR (Khusus Super Kasir)
@@ -283,27 +289,24 @@ def transactions():
     page = request.args.get('page', 1, type=int)
     date_filter = request.args.get('date', '', type=str)
     search = request.args.get('search', '', type=str)
-    
-    query = Order.query.filter_by(order_type='POS')
-    
-    # Filter berdasarkan tanggal
+
+    # TAMBAHKAN joinedload untuk User agar nama kasir dimuat sekaligus
+    query = Order.query.options(joinedload(Order.user)).filter_by(order_type='POS')
+
     if date_filter:
         try:
-            from datetime import datetime
             filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
             query = query.filter(db.func.date(Order.created_at) == filter_date)
         except ValueError:
             pass
-            
-    # Filter berdasarkan nomor transaksi
+
     if search:
         query = query.filter(Order.order_number.ilike(f'%{search}%'))
-        
+
     orders = query.order_by(Order.created_at.desc()).paginate(page=page, per_page=15)
-    
+
     return render_template('transactions.html', orders=orders, 
                            current_date=date_filter, current_search=search)
-
 # API: Detail Transaksi (untuk modal)
 @kasir_bp.route('/api/transactions/<int:order_id>')
 @kasir_required
