@@ -141,26 +141,39 @@ body {
 }
 
 /* ==========================================
-   PAGINATION STYLING (Konsisten dengan Gudang)
+   PAGINATION STYLING (Horizontal & Rapi)
    ========================================== */
 .pagination {
-    margin-bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.pagination .page-item {
+    margin: 2px;
 }
 
 .pagination .page-link {
-    border-radius: 8px;
-    margin: 0 2px;
+    display: inline-block;
     padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
     font-weight: 500;
     color: #198754;
+    background-color: #fff;
     border: 1px solid #dee2e6;
+    border-radius: 8px;
+    text-decoration: none;
     transition: all 0.2s ease;
+    white-space: nowrap;
 }
 
 .pagination .page-link:hover {
     background-color: #f8f9fa;
     border-color: #198754;
-    color: #198754;
+    color: #157347;
 }
 
 .pagination .page-item.active .page-link {
@@ -170,17 +183,18 @@ body {
     box-shadow: 0 2px 4px rgba(25, 135, 84, 0.2);
 }
 
-.pagination .page-item.disabled .page-link {
+.pagination .page-item.disabled .page-link,
+.pagination .page-item.disabled span.page-link {
     color: #6c757d;
     background-color: #f8f9fa;
     border-color: #dee2e6;
     cursor: not-allowed;
+    pointer-events: none;
 }
 
 /* Info teks di bawah pagination */
 #paginationControls .text-muted {
     font-size: 0.875rem;
-    color: #6c757d !important;
 }
 
 #paginationControls strong {
